@@ -1,0 +1,56 @@
+.PHONY:
+.SECONDARY:
+
+check-variables:
+	@if test -z "$(RELEASE_VERSION)"; then \
+		echo Variable RELEASE_VERSION must be set; \
+		false; \
+	fi
+	@if test -z "$(RELEASE_ASSETS)"; then \
+		echo Variable RELEASE_ASSETS must be set; \
+		false; \
+	fi
+
+check-tools:
+	@if ! type git 2>/dev/null; then \
+		echo Please install <git>; \
+		false; \
+	fi
+	@if ! type hub 2>/dev/null; then \
+		echo Please install <hub> from XXX; \
+		false; \
+	fi
+
+check-changes: ; $(info $(M) Checking for uncommitted changes...)
+	@if test "$$(git status --short)"; then \
+		git status --short; \
+		false; \
+	fi
+
+bump-%: | check-variables ; $(info $(M) Bumping $* for version $(RELEASE_VERSION)...)
+	@$(SEMVER) bump $* $(RELEASE_VERSION)
+
+check-tag: | check-variables ; $(info $(M) Checking for untagged commits in $(RELEASE_VERSION)...)
+	@if ! $(SEMVER) get prerel $(RELEASE_VERSION) | grep -v --quiet "^[0-9]*-g[0-9a-f]*$$"; then \
+		PAGER= git log --oneline -n $$($(SEMVER) get prerel $(RELEASE_VERSION) | cut -d- -f1); \
+		false; \
+	fi
+
+tag: tag-$(RELEASE_VERSION)
+
+tag-%: | check-changes ; $(info $(M) Tagging as $*...)
+	@git tag | grep -q "$*" || git tag --annotate --sign $* --message "Version $*"
+	@git push origin $*
+
+changelog: MILESTONE = $(shell curl -s https://api.github.com/repos/$(GITHUB_OWNER)/$(GITHUB_REPOSITORY)/milestones?state=all | jq ".[] | select(.title == \"Version $(GIT_TAG)\").number")
+changelog: | check-variables ; $(info $(M) Creating changelog for $(RELEASE_VERSION) using milestone $(MILESTONE)...)
+	@( \
+	    echo Version $(RELEASE_VERSION); \
+	    echo; \
+	    hub issue -M $(MILESTONE) -s closed -f "[%t](%U)%n" | while read LINE; do echo "- $$LINE"; done; \
+	) > $(RELEASE_VERSION).txt
+
+release-%: check-changes check-variables check-tag tag-% ; $(info $(M) Uploading release for $(RELEASE_VERSION)...)
+	@hub release create -F $(RELEASE_VERSION).txt $(addprefix "-a ", $(RELEASE_ASSETS)) $(RELEASE_VERSION)
+
+release: changelog release-$(RELEASE_VERSION) ; $(info $(M) Releasing version $(RELEASE_VERSION)...)

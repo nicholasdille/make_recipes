@@ -1,0 +1,24 @@
+DOCKER_IMAGE=$(DOCKER_OWNER)/$(DOCKER_REPOSITORY):$(DOCKER_TAG)
+DOCKER_STATE=$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)/$(DOCKER_TAG)
+
+.PHONY: clean prepare init build
+
+.SECONDARY:
+
+docker-clean:
+	@rm -rf .docker
+
+.docker/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY):
+	@mkdir -p $@
+
+.docker/$(DOCKER_STATE).image: | .docker/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)
+	@if docker image ls $(DOCKER_IMAGE) | grep --invert-match --quiet $(DOCKER_IMAGE); then \
+		docker build --tag $(DOCKER_IMAGE) .; \
+	fi
+	@touch .docker/$(DOCKER_STATE).image
+
+.docker/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)/%.tag: | .docker/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)
+	@if docker image ls $(DOCKER_OWNER)/$(DOCKER_REPOSITORY):$* | grep --invert-match --quiet $(DOCKER_OWNER)/$(DOCKER_REPOSITORY); then \
+		docker tag $(IMAGE) $(DOCKER_OWNER)/$(DOCKER_REPOSITORY):$*; \
+	fi
+	@touch .docker/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)/$*.tag
