@@ -1,3 +1,8 @@
+########## Required variables
+# None
+
+########## Targets
+
 .PHONY:
 .SECONDARY:
 
@@ -17,7 +22,7 @@ check-tools:
 		false; \
 	fi
 	@if ! type hub 2>/dev/null; then \
-		echo Please install <hub> from XXX; \
+		echo Please install <hub> from https://github.com/github/hub; \
 		false; \
 	fi
 
