@@ -1,12 +1,15 @@
 ########## Required variables
 # None
 
+########## Variables
+M = $(shell printf "\033[34;1m▶\033[0m")
+
 ########## Targets
 
 .PHONY:
 .SECONDARY:
 
-check-variables:
+check-variables: ; $(info $(M) Checking release variables...)
 	@if test -z "$(RELEASE_VERSION)"; then \
 		echo Variable RELEASE_VERSION must be set; \
 		false; \
@@ -16,7 +19,7 @@ check-variables:
 		false; \
 	fi
 
-check-tools:
+check-tools: ; $(info $(M) Checking release tools...)
 	@if ! type git 2>/dev/null; then \
 		echo Please install <git>; \
 		false; \

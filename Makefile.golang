@@ -17,16 +17,16 @@ M = $(shell printf "\033[34;1m▶\033[0m")
 
 ########## Targets: Global
 
-.PHONY: clean prepare deps deppatch depupdate deptidy format linter check
+.PHONY: go-clean go-prepare deps deppatch depupdate deptidy format linter check
 
 .SECONDARY:
 
-clean: clean-docker; $(info $(M) Cleaning...)
+go-clean: ; $(info $(M) Cleaning...)
 	@rm -rf $(BIN)
 
-prepare: | $(BIN)
+go-prepare: | $(BIN)
 
-$(BIN): ; $(info $(M) Preparing binary...)
+$(BIN): ; $(info $(M) Preparing output directory...)
 	@mkdir -p $(BIN)
 
 ########## Targets: Tools
@@ -50,7 +50,7 @@ format: ; $(info $(M) Running formatter...)
 
 # go get github.com/golang/lint/golint
 lint: ; $(info $(M) Running linter...)
-	@golint $(PACKAGE)
+	@golint $(GO_PACKAGE)
 
 # go get github.com/KyleBanks/depth/cmd/depth
 deptree: ; $(info $(M) Creating dependency tree...)
@@ -66,8 +66,9 @@ check: format lint
 %.asc: % ; $(info $(M) Creating signature for $*...)
 	@gpg --local-user $$(git config --get user.signingKey) --sign --armor --detach-sig --yes $*
 
-$(BIN)/$(PACKAGE): $(SOURCE) | prepare ; $(info $(M) Building $(PACKAGE)...)
+$(BIN)/$(GO_PACKAGE): $(SOURCE) | go-prepare ; $(info $(M) Building $(GO_PACKAGE)...)
 	@go build -ldflags "-s -w -X main.GitCommit=$(GIT_COMMIT) -X main.BuildTime=$(BUILD_TIME) -X main.Version=$(GIT_TAG)" -o $@ $(SOURCE)
 
-$(BIN)/$(STATIC): $(SOURCE) | prepare ; $(info $(M) Building static $(PACKAGE)...)
+$(BIN)/$(STATIC): $(SOURCE) | go-prepare ; $(info $(M) Building static $(GO_PACKAGE)...)
 	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags "-s -w -X main.GitCommit=$(GIT_COMMIT) -X main.BuildTime=$(BUILD_TIME) -X main.Version=$(GIT_TAG)" -o $@ $(SOURCE)
+

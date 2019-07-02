@@ -7,24 +7,26 @@
 DOCKER_IMAGE=$(DOCKER_OWNER)/$(DOCKER_REPOSITORY):$(DOCKER_TAG)
 DOCKER_STATE=$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)/$(DOCKER_TAG)
 
+M = $(shell printf "\033[34;1m▶\033[0m")
+
 ########## Targets
-.PHONY: clean prepare init build
+.PHONY: docker-clean
 
 .SECONDARY:
 
-docker-clean:
+docker-clean: ; $(info $(M) Cleaning Docker state...)
 	@rm -rf .docker
 
-.docker/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY):
+.docker/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY): ; $(info $(M) Preparing Docker state...)
 	@mkdir -p $@
 
-.docker/$(DOCKER_STATE).image: | .docker/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)
+.docker/$(DOCKER_STATE).image: | .docker/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY) ; $(info $(M) Building Docker image for $(DOCKER_IMAGE)...)
 	@if docker image ls $(DOCKER_IMAGE) | grep --invert-match --quiet $(DOCKER_IMAGE); then \
 		docker build --tag $(DOCKER_IMAGE) .; \
 	fi
 	@touch .docker/$(DOCKER_STATE).image
 
-.docker/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)/%.tag: | .docker/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)
+.docker/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)/%.tag: | .docker/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY) ; $(info $(M) Tagging Docker image $(DOCKER_IMAGE) with tag $*...)
 	@if docker image ls $(DOCKER_OWNER)/$(DOCKER_REPOSITORY):$* | grep --invert-match --quiet $(DOCKER_OWNER)/$(DOCKER_REPOSITORY); then \
 		docker tag $(IMAGE) $(DOCKER_OWNER)/$(DOCKER_REPOSITORY):$*; \
 	fi
